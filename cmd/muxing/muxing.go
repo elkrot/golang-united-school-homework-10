@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -10,24 +11,39 @@ import (
 	"github.com/gorilla/mux"
 )
 
-/**
-Please note Start functions is a placeholder for you to start your own solution.
-Feel free to drop gorilla.mux if you want and use any other solution available.
-
-main function reads host/port from env just for an example, flavor it following your taste
-*/
-
-// Start /** Starts the web server listener on given host and port.
 func Start(host string, port int) {
 	router := mux.NewRouter()
-
+	router.HandleFunc("/name/{param}", ParameterListHandler).Methods(http.MethodGet)
+	router.HandleFunc("/bad", BadResponseHandler).Methods(http.MethodGet)
+	router.HandleFunc("/data", DataHandler).Methods(http.MethodPost)
+	router.HandleFunc("/headers", HeaderHandler).Methods(http.MethodPost)
 	log.Println(fmt.Printf("Starting API server on %s:%d\n", host, port))
 	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), router); err != nil {
 		log.Fatal(err)
 	}
 }
+func BadResponseHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusInternalServerError)
+}
+func DataHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	b, _ := ioutil.ReadAll(r.Body)
+	fmt.Fprintf(w, "I got message:\n%v", string(b))
+}
+func HeaderHandler(w http.ResponseWriter, r *http.Request) {
 
-//main /** starts program, gets HOST:PORT param and calls Start func.
+	a, _ := strconv.Atoi(r.Header.Get("a"))
+	b, _ := strconv.Atoi(r.Header.Get("b"))
+	a_b := a + b
+	w.Header().Set("a+b", fmt.Sprint(a_b))
+	w.WriteHeader(http.StatusOK)
+}
+func ParameterListHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Hello, %v!", vars["param"])
+}
+
 func main() {
 	host := os.Getenv("HOST")
 	port, err := strconv.Atoi(os.Getenv("PORT"))
